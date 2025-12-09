@@ -1,35 +1,56 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+// 中文：应用入口，配置路由并使用 AuthProvider（简单示例）所包裹
+// EN: App entry, set up routing and wrap with AuthProvider (simple example)
+import React from 'react';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import './App.css';
+import { AuthProvider } from './contexts/AuthContext';
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import Market from './pages/Market';
+import Trade from './pages/Trade';
+import Orders from './pages/Orders';
+import Wallet from './pages/Wallet';
+import Settings from './pages/Settings';
 
-function App() {
-  const [count, setCount] = useState(0)
-
+const App: React.FC = () => {
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+    <AuthProvider>
+      <BrowserRouter>
+        <div className="app-root">
+          <header className="app-header">
+            <h1>加密交易平台 - Demo</h1>
+            <nav>
+              <Link to="/">仪表盘</Link>
+              {' | '}
+              <Link to="/market">行情</Link>
+              {' | '}
+              <Link to="/trade">交易</Link>
+              {' | '}
+              <Link to="/orders">订单</Link>
+              {' | '}
+              <Link to="/wallet"></Link>
+              {' | '}
+              <Link to="/settings">设置</Link>
+              {' | '}
+              <Link to="/login">登录</Link>
+            </nav>
+          </header>
 
-export default App
+          <main className="app-main">
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/market" element={<Market />} />
+              <Route path="/trade" element={<Trade />} />
+              <Route path="/orders" element={<Orders />} />
+              <Route path="/wallet" element={<Wallet />} />
+              <Route path="/settings" element={<Settings />} />
+            </Routes>
+          </main>
+        </div>
+      </BrowserRouter>
+    </AuthProvider>
+  );
+};
+
+export default App;
