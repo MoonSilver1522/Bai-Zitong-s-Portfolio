@@ -1,67 +1,137 @@
-// 中文：提供简单的认证上下文（模拟登录）
-// EN: Simple Auth context for mock login
-import React, { createContext, useReducer, useContext } from 'react';
+import React, { useReducer, useEffect } from 'react';
+import { AuthContext } from './AuthContextCore';
 
-type User = { id: string; username: string } | null;
-type State = { user: User; loading: boolean };
+declare global {
+  interface Window {
+    ethereum?: {
+      request: (options: { method: string }) => Promise<unknown>;
+      on?: (event: string, handler: (...args: unknown[]) => void) => void;
+      removeListener?: (event: string, handler: (...args: unknown[]) => void) => void;
+    };
+  }
+}
+
+type State = {
+  walletAddress: string | null;
+  chainId: string | null;
+  loading: boolean;
+  error: string | null;
+};
 
 type Action =
-  | { type: 'login_start' }
-  | { type: 'login_success'; user: User }
-  | { type: 'logout' };
+  | { type: 'connect_start' }
+  | { type: 'connect_success'; walletAddress: string; chainId: string | null }
+  | { type: 'connect_error'; error: string }
+  | { type: 'disconnect' }
+  | { type: 'chain_changed'; chainId: string };
 
-const initialState: State = { user: null, loading: false };
+const initialState: State = {
+  walletAddress: null,
+  chainId: null,
+  loading: false,
+  error: null,
+};
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
-    case 'login_start':
-      return { ...state, loading: true };
-    case 'login_success':
-      return { user: action.user, loading: false };
-    case 'logout':
-      return { user: null, loading: false };
+    case 'connect_start':
+      return { ...state, loading: true, error: null };
+    case 'connect_success':
+      return {
+        walletAddress: action.walletAddress,
+        chainId: action.chainId,
+        loading: false,
+        error: null,
+      };
+    case 'connect_error':
+      return { ...state, loading: false, error: action.error };
+    case 'disconnect':
+      return { walletAddress: null, chainId: null, loading: false, error: null };
+    case 'chain_changed':
+      return { ...state, chainId: action.chainId };
     default:
       return state;
   }
 }
 
-const AuthContext = createContext<{
-  state: State;
-  login: (username: string, password: string) => Promise<void>;
-  logout: () => void;
-}>(null as any);
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
 
-  // 中文：模拟登录函数，延迟后设置用户
-  // EN: mock login function, set user after a timeout
-  async function login(username: string, password: string) {
-    dispatch({ type: 'login_start' });
-    await new Promise((res) => setTimeout(res, 600)); // 模拟网络延时
-    const user = { id: Date.now().toString(), username };
-    // 简单保存到 localStorage 以便刷新后仍可保持（演示用途）
-    localStorage.setItem('mock_user', JSON.stringify(user));
-    dispatch({ type: 'login_success', user });
+  async function connectWallet(): Promise<boolean> {
+    const provider = window.ethereum;
+    if (!provider) {
+      dispatch({ type: 'connect_error', error: '请安装 MetaMask 或其他 Web3 钱包' });
+      return false;
+    }
+
+    dispatch({ type: 'connect_start' });
+
+    try {
+      const accounts = (await provider.request({ method: 'eth_requestAccounts' })) as string[];
+      const chainId = (await provider.request({ method: 'eth_chainId' })) as string;
+      const walletAddress = accounts?.[0]?.toLowerCase() ?? null;
+
+      if (!walletAddress) {
+        throw new Error('未获取钱包地址');
+      }
+
+      localStorage.setItem('wallet_address', walletAddress);
+      if (chainId) {
+        localStorage.setItem('wallet_chain_id', chainId);
+      }
+
+      dispatch({ type: 'connect_success', walletAddress, chainId: chainId || null });
+      return true;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '连接钱包失败';
+      dispatch({ type: 'connect_error', error: message });
+      return false;
+    }
   }
 
-  function logout() {
-    localStorage.removeItem('mock_user');
-    dispatch({ type: 'logout' });
+  function disconnectWallet() {
+    localStorage.removeItem('wallet_address');
+    localStorage.removeItem('wallet_chain_id');
+    dispatch({ type: 'disconnect' });
   }
 
-  // 初始化：如果 localStorage 有用户，直接登录（页面刷新时保留会话）
-  React.useEffect(() => {
-    const raw = localStorage.getItem('mock_user');
-    if (raw) {
-      try {
-        const u = JSON.parse(raw);
-        dispatch({ type: 'login_success', user: u });
-      } catch {}
+  useEffect(() => {
+    const storedAddress = localStorage.getItem('wallet_address');
+    const storedChainId = localStorage.getItem('wallet_chain_id');
+    if (storedAddress) {
+      dispatch({ type: 'connect_success', walletAddress: storedAddress, chainId: storedChainId });
     }
   }, []);
 
-  return <AuthContext.Provider value={{ state, login, logout }}>{children}</AuthContext.Provider>;
-};
+  useEffect(() => {
+    const provider = window.ethereum;
+    if (!provider?.on) {
+      return;
+    }
 
-export const useAuth = () => useContext(AuthContext);
+    const handleAccountsChanged = (accounts: string[]) => {
+      if (accounts.length > 0) {
+        const walletAddress = accounts[0].toLowerCase();
+        localStorage.setItem('wallet_address', walletAddress);
+        dispatch({ type: 'connect_success', walletAddress, chainId: state.chainId });
+      } else {
+        disconnectWallet();
+      }
+    };
+
+    const handleChainChanged = (chainId: string) => {
+      localStorage.setItem('wallet_chain_id', chainId);
+      dispatch({ type: 'chain_changed', chainId });
+    };
+
+    provider.on('accountsChanged', handleAccountsChanged as (...args: unknown[]) => void);
+    provider.on('chainChanged', handleChainChanged as (...args: unknown[]) => void);
+
+    return () => {
+      provider.removeListener?.('accountsChanged', handleAccountsChanged as (...args: unknown[]) => void);
+      provider.removeListener?.('chainChanged', handleChainChanged as (...args: unknown[]) => void);
+    };
+  }, [state.chainId]);
+
+  return <AuthContext.Provider value={{ state, connectWallet, disconnectWallet }}>{children}</AuthContext.Provider>;
+};

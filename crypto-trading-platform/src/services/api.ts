@@ -1,6 +1,3 @@
-// 中文：模拟 API，数据存在 localStorage 中，适合学习与本地测试
-// EN: Mock API with localStorage persistence for learning
-
 type Ticker = { symbol: string; price: number; change: number };
 type Order = {
   id: string;
@@ -18,7 +15,9 @@ export async function fetchTickers(): Promise<Ticker[]> {
   if (stored) {
     try {
       return JSON.parse(stored) as Ticker[];
-    } catch {}
+    } catch (error) {
+      console.error('Failed to parse stored tickers', error);
+    }
   }
   const data: Ticker[] = [
     { symbol: 'BTCUSDT', price: 60000, change: 2.1 },

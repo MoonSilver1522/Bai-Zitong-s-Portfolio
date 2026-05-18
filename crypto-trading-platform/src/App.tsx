@@ -1,56 +1,61 @@
-// 中文：应用入口，配置路由并使用 AuthProvider（简单示例）所包裹
-// EN: App entry, set up routing and wrap with AuthProvider (simple example)
 import React from 'react';
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom';
 import './App.css';
 import { AuthProvider } from './contexts/AuthContext';
+import { useAuth } from './contexts/useAuth';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import Market from './pages/Market';
-import Trade from './pages/Trade';
-import Orders from './pages/Orders';
-import Wallet from './pages/Wallet';
-import Settings from './pages/Settings';
 
-const App: React.FC = () => {
+const AppShell: React.FC = () => {
+  const { state, disconnectWallet } = useAuth();
+  const shortAddress = state.walletAddress
+    ? `${state.walletAddress.slice(0, 6)}...${state.walletAddress.slice(-4)}`
+    : null;
+
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <div className="app-root">
-          <header className="app-header">
-            <h1>加密交易平台 - Demo</h1>
-            <nav>
-              <Link to="/">仪表盘</Link>
-              {' | '}
-              <Link to="/market">行情</Link>
-              {' | '}
-              <Link to="/trade">交易</Link>
-              {' | '}
-              <Link to="/orders">订单</Link>
-              {' | '}
-              <Link to="/wallet"></Link>
-              {' | '}
-              <Link to="/settings">设置</Link>
-              {' | '}
-              <Link to="/login">登录</Link>
-            </nav>
-          </header>
-
-          <main className="app-main">
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/market" element={<Market />} />
-              <Route path="/trade" element={<Trade />} />
-              <Route path="/orders" element={<Orders />} />
-              <Route path="/wallet" element={<Wallet />} />
-              <Route path="/settings" element={<Settings />} />
-            </Routes>
-          </main>
+    <div className="app-root">
+      <header className="app-header">
+        <div className="brand">
+          <h1>Zitong Bai's Dashboard</h1>
+          <p>企业级 Web3 仪表盘骨架</p>
         </div>
-      </BrowserRouter>
-    </AuthProvider>
+
+        <nav className="app-nav">
+          <Link to="/">Dashboard</Link>
+          <Link to="/login">Wallet Login</Link>
+        </nav>
+
+        <div className="account-panel">
+          {state.walletAddress ? (
+            <>
+              <span className="account-chip">{shortAddress}</span>
+              <button className="ghost-button" type="button" onClick={disconnectWallet}>
+                Disconnect
+              </button>
+            </>
+          ) : (
+            <span className="status-tag">Wallet not connected</span>
+          )}
+        </div>
+      </header>
+
+      <main className="app-main">
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
+    </div>
   );
 };
+
+const App: React.FC = () => (
+  <AuthProvider>
+    <BrowserRouter>
+      <AppShell />
+    </BrowserRouter>
+  </AuthProvider>
+);
 
 export default App;
