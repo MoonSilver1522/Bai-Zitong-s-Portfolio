@@ -209,6 +209,47 @@ a {
   line-height: 1.65;
 }
 
+.wallet-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.asset-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.asset-table th,
+.asset-table td {
+  padding: 1rem 0.85rem;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.asset-table th {
+  color: #334155;
+  font-weight: 700;
+}
+
+.asset-table td {
+  color: #0f172a;
+}
+
+.asset-table tr:last-child td {
+  border-bottom: none;
+}
+
+.asset-table .positive {
+  color: #16a34a;
+}
+
+.asset-table .negative {
+  color: #dc2626;
+}
+
 @media (max-width: 720px) {
   .app-header {
     flex-direction: column;

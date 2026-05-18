@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/useAuth';
 
 const Login: React.FC = () => {
-  const { state, connectWallet, disconnectWallet } = useAuth();
+  const { state, connectWallet } = useAuth();
   const navigate = useNavigate();
 
   const handleConnect = async () => {
@@ -27,9 +27,9 @@ const Login: React.FC = () => {
             <p className="field-value">{state.walletAddress}</p>
             <p className="field-label">网络 ID</p>
             <p className="field-value">{state.chainId ?? '未知'}</p>
-            <button className="button-primary" type="button" onClick={disconnectWallet}>
-              Disconnect Wallet
-            </button>
+            <p className="small-note">
+              若要断开连接，请在钱包扩展中撤销该站点授权。点击钱包插件中的“断开连接”或“移除授权”。
+            </p>
           </div>
         ) : (
           <div className="login-actions">

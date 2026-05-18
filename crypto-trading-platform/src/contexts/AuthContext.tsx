@@ -4,7 +4,7 @@ import { AuthContext } from './AuthContextCore';
 declare global {
   interface Window {
     ethereum?: {
-      request: (options: { method: string }) => Promise<unknown>;
+      request: (options: { method: string; params?: Array<unknown> }) => Promise<unknown>;
       on?: (event: string, handler: (...args: unknown[]) => void) => void;
       removeListener?: (event: string, handler: (...args: unknown[]) => void) => void;
     };
@@ -57,6 +57,7 @@ function reducer(state: State, action: Action): State {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
 
+  // 连接钱包的核心函数，处理连接流程与错误
   async function connectWallet(): Promise<boolean> {
     const provider = window.ethereum;
     if (!provider) {
@@ -89,7 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }
 
-  function disconnectWallet() {
+  function clearSession() {
     localStorage.removeItem('wallet_address');
     localStorage.removeItem('wallet_chain_id');
     dispatch({ type: 'disconnect' });
@@ -115,7 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('wallet_address', walletAddress);
         dispatch({ type: 'connect_success', walletAddress, chainId: state.chainId });
       } else {
-        disconnectWallet();
+        clearSession();
       }
     };
 
@@ -133,5 +134,5 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [state.chainId]);
 
-  return <AuthContext.Provider value={{ state, connectWallet, disconnectWallet }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ state, connectWallet }}>{children}</AuthContext.Provider>;
 };

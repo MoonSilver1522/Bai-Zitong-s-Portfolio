@@ -10,7 +10,6 @@ export type AuthState = {
 export type AuthContextValue = {
   state: AuthState;
   connectWallet: () => Promise<boolean>;
-  disconnectWallet: () => void;
 };
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
